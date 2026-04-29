@@ -1,9 +1,3 @@
-"""
-chat.py — Personal RAG Assistant · CLI Interface
-รัน:  python chat.py
-หรือ: python chat.py "คำถามของคุณ"   (one-shot mode)
-"""
-
 import os
 import sys
 from pathlib import Path
@@ -19,12 +13,13 @@ from langchain_core.prompts import ChatPromptTemplate
 # CONFIG
 # ──────────────────────────────────────────────
 load_dotenv()
+os.environ["CHROMA_TELEMETRY_NOOP"] = "True"
 API_KEY = os.getenv("GOOGLE_API_KEY")
 DB_PATH = "vector_db"
-TOP_K   = 3   # จำนวน chunk ที่ดึงมาอ้างอิง
+TOP_K   = 3
 
 # ──────────────────────────────────────────────
-# COLORS (ANSI — ทำงานได้บน macOS / Linux / Windows Terminal)
+# COLORS
 # ──────────────────────────────────────────────
 class C:
     RESET  = "\033[0m"
@@ -54,19 +49,16 @@ def separator(char="─", n=55, color=C.DIM):
     print(f"{color}{char * n}{C.RESET}")
 
 def print_answer(text: str):
-    """พิมพ์คำตอบพร้อม word-wrap ที่สวยงาม"""
-    print(f"\n{C.GREEN}{C.BOLD}🤖 คำตอบ{C.RESET}")
+    print(f"\n{C.GREEN}{C.BOLD} คำตอบ{C.RESET}")
     separator()
-    # ตัด paragraph ให้สวย
     for para in text.strip().split("\n"):
         print(f"  {para}")
     separator()
 
 def print_sources(docs: list):
-    """พิมพ์แหล่งอ้างอิงพร้อม snippet สั้นๆ"""
     if not docs:
         return
-    print(f"\n{C.YELLOW}{C.BOLD}📚 แหล่งอ้างอิง ({len(docs)} ชิ้น){C.RESET}")
+    print(f"\n{C.YELLOW}{C.BOLD} แหล่งอ้างอิง ({len(docs)} ชิ้น){C.RESET}")
     seen = set()
     for i, doc in enumerate(docs, 1):
         src   = doc.metadata.get("source", "ไม่ทราบแหล่งที่มา")
@@ -84,19 +76,20 @@ def print_sources(docs: list):
 # ──────────────────────────────────────────────
 # RAG CHAIN
 # ──────────────────────────────────────────────
-
 def build_chain():
-    """สร้าง RAG chain พร้อม prompt ภาษาไทย"""
     if not Path(DB_PATH).exists():
-        print(f"{C.RED}❌ ยังไม่มีฐานข้อมูล '{DB_PATH}/' — รัน python ingest.py ก่อนนะครับ{C.RESET}")
+        print(f"{C.RED} ยังไม่มีฐานข้อมูล '{DB_PATH}/' — รัน python ingest.py ก่อนนะครับ{C.RESET}")
         sys.exit(1)
 
+    # ✅ แก้ไข: ใช้ model เดียวกับใน ingest.py
     embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/gemini-embedding-001",
+        model="models/gemini-embedding-2",
         api_key=API_KEY,
     )
+    
+    # ✅ แก้ไข: ปรับโมเดลเป็นเวอร์ชันที่มีความเสถียรใน API ปัจจุบัน (สามารถเปลี่ยนกลับได้หากใช้คีย์ที่รองรับ)
     llm = ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash",
+        model="models/gemini-2.0-flash", 
         temperature=0.3,
         api_key=API_KEY,
     )
@@ -122,20 +115,16 @@ Context:
     )
     return retrieval_chain
 
-
 def ask(chain, query: str):
-    print(f"\n{C.MAGENTA}⏳ กำลังค้นหาและประมวลผล...{C.RESET}")
+    print(f"\n{C.MAGENTA} กำลังค้นหาและประมวลผล...{C.RESET}")
     result = chain.invoke({"input": query})
     print_answer(result["answer"])
     print_sources(result["context"])
 
-
 # ──────────────────────────────────────────────
 # ENTRY POINTS
 # ──────────────────────────────────────────────
-
 def interactive_mode(chain):
-    """โหมด REPL — พิมพ์คำถามวนซ้ำ"""
     separator("═", 55, C.CYAN)
     print(f"  {C.CYAN}พิมพ์คำถาม แล้วกด Enter{C.RESET}  {C.DIM}(exit / quit เพื่อออก){C.RESET}")
     separator("═", 55, C.CYAN)
@@ -143,40 +132,34 @@ def interactive_mode(chain):
     history = []
     while True:
         try:
-            q = input(f"\n{C.BOLD}{C.WHITE}❓ คำถาม: {C.RESET}").strip()
+            q = input(f"\n{C.BOLD}{C.WHITE} คำถาม: {C.RESET}").strip()
         except (EOFError, KeyboardInterrupt):
-            print(f"\n{C.DIM}👋 ลาก่อนครับ!{C.RESET}")
+            print(f"\n{C.DIM} ลาก่อนครับ!{C.RESET}")
             break
 
         if not q:
             continue
         if q.lower() in ("exit", "quit", "ออก", "q"):
-            print(f"{C.DIM}👋 ลาก่อนครับ!{C.RESET}")
+            print(f"{C.DIM} ลาก่อนครับ!{C.RESET}")
             break
 
         history.append(q)
         ask(chain, q)
 
-
 def one_shot_mode(chain, query: str):
-    """โหมด One-shot — รับคำถามจาก argument"""
     ask(chain, query)
-
 
 def main():
     banner()
-
     print(f"{C.DIM}กำลังโหลดโมเดลและเชื่อมต่อฐานข้อมูล...{C.RESET}")
     chain = build_chain()
-    print(f"{C.GREEN}✅ พร้อมใช้งาน!{C.RESET}")
+    print(f"{C.GREEN} พร้อมใช้งาน!{C.RESET}")
 
     if len(sys.argv) > 1:
-        # One-shot: python chat.py "คำถาม"
         query = " ".join(sys.argv[1:])
         one_shot_mode(chain, query)
     else:
         interactive_mode(chain)
-
 
 if __name__ == "__main__":
     main()
