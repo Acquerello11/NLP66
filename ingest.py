@@ -21,7 +21,7 @@ from langchain_chroma import Chroma
 # CONFIG
 # ──────────────────────────────────────────────
 load_dotenv()
-API_KEY   = os.getenv("GEMINI_API_KEY")
+API_KEY   = os.getenv("GOOGLE_API_KEY")
 DOCS_PATH = Path("my_documents")
 DB_PATH   = "vector_db"
 MANIFEST  = Path("ingested_manifest.json")   # ไฟล์ติดตามว่าอ่านไปแล้วอะไรบ้าง

@@ -19,7 +19,7 @@ from langchain_core.prompts import ChatPromptTemplate
 # CONFIG
 # ──────────────────────────────────────────────
 load_dotenv()
-API_KEY = os.getenv("GEMINI_API_KEY")
+API_KEY = os.getenv("GOOGLE_API_KEY")
 DB_PATH = "vector_db"
 TOP_K   = 3   # จำนวน chunk ที่ดึงมาอ้างอิง
 

@@ -7,3 +7,5 @@ langchain-text-splitters==0.2.4
 chromadb==0.5.3
 pypdf==4.3.1
 python-dotenv==1.0.1
+
+python -m pip show protobuf google-api-core google-cloud-core langchain langchain-community langchain-chroma langchain-google-genai chromadb
