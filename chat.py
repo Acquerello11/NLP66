@@ -16,7 +16,7 @@ load_dotenv()
 os.environ["CHROMA_TELEMETRY_NOOP"] = "True"
 API_KEY = os.getenv("GOOGLE_API_KEY")
 DB_PATH = "vector_db"
-TOP_K   = 3
+TOP_K   = 2
 
 # ──────────────────────────────────────────────
 # COLORS
