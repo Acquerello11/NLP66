@@ -64,7 +64,10 @@ def print_sources(docs: list):
         src   = doc.metadata.get("source", "ไม่ทราบแหล่งที่มา")
         fname = Path(src).name
         page  = doc.metadata.get("page", "")
-        page_str = f"  หน้า {int(page)+1}" if page != "" else ""
+            try:
+                page_str = f"  หน้า {int(page)+1}" if page != "" else ""
+            except (ValueError, TypeError):
+                page_str = ""
 
         if fname not in seen:
             seen.add(fname)
@@ -111,10 +114,14 @@ Context: {context}
     return retrieval_chain
 
 def ask(chain, query: str):
-    print(f"\n{C.MAGENTA} กำลังค้นหาและประมวลผล...{C.RESET}")
-    result = chain.invoke({"input": query})
-    print_answer(result["answer"])
-    print_sources(result["context"])
+    try:
+        print(f"\n{C.MAGENTA} กำลังค้นหาและประมวลผล...{C.RESET}")
+        result = chain.invoke({"input": query})
+        print_answer(result["answer"])
+        print_sources(result["context"])
+    except Exception as e:
+        print(f"\n{C.RED} เกิดข้อผิดพลาด: {e}{C.RESET}")
+        print(f"{C.YELLOW} คำแนะนำ: ตรวจสอบการเชื่อมต่อเน็ต หรือรอสักครู่ (API Limit){C.RESET}")
 
 # ──────────────────────────────────────────────
 # ENTRY POINTS
