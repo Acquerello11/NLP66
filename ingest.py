@@ -16,6 +16,7 @@ from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
+from langchain.schema import Document
 
 # ──────────────────────────────────────────────
 # CONFIG
@@ -72,7 +73,31 @@ def scan_new_files(manifest: dict) -> list[Path]:
 def load_documents(path: Path):
     """โหลด document ตาม loader ที่เหมาะสมกับ extension"""
     loader_cls = SUPPORTED[path.suffix.lower()]
-    return loader_cls(str(path)).load()
+    try:
+        return loader_cls(str(path)).load()
+    except Exception as e:
+        # Fallback for text files with unknown/odd encodings: read bytes and
+        # try multiple decodings, then build a single Document.
+        if path.suffix.lower() == ".txt":
+            try:
+                with open(path, "rb") as f:
+                    raw = f.read()
+
+                text = None
+                for enc in ("utf-8", "utf-8-sig", "cp874", "cp1252", "latin-1"):
+                    try:
+                        text = raw.decode(enc)
+                        break
+                    except Exception:
+                        text = None
+
+                if text is None:
+                    text = raw.decode("utf-8", errors="replace")
+
+                return [Document(page_content=text, metadata={"source": str(path)})]
+            except Exception:
+                raise
+        raise
 
 # ──────────────────────────────────────────────
 # MAIN

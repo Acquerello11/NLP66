@@ -119,7 +119,7 @@ python-dotenv
 สร้างไฟล์ชื่อ `.env` ที่ root ของโปรเจค แล้วใส่:
 
 ```env
-GEMINI_API_KEY=your_api_key_here
+GOOGLE_API_KEY=your_api_key_here
 ```
 
 > ⚠️ อย่า commit ไฟล์ `.env` ขึ้น GitHub เด็ดขาด! เพิ่ม `.env` ลงใน `.gitignore`
