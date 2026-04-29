@@ -323,13 +323,6 @@ temperature = 0.3  # ความสร้างสรรค์ (0.0 = ตรง
 
 ## 🛠️ แก้ปัญหาที่พบบ่อย
 
-### ❌ `ModuleNotFoundError: No module named 'langchain_classic'`
-
-```bash
-# langchain_classic ไม่มีอยู่จริง — ติดตั้ง dependencies ให้ครบ
-pip install -r requirements.txt
-```
-
 ---
 
 ### ❌ `GOOGLE_API_KEY not set` หรือ `API key not valid`
@@ -345,14 +338,6 @@ cat .env
 ```
 
 > ❌ ชื่อไฟล์ผิด: `env`, `_env`, `.env.txt` → ✅ ต้องเป็น `.env` เท่านั้น
-
----
-
-### ❌ `No module named 'langchain_chroma'` หรือ `chromadb`
-
-```bash
-pip install langchain-chroma chromadb langchain-google-genai
-```
 
 ---
 
