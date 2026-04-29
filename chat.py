@@ -81,13 +81,11 @@ def build_chain():
         print(f"{C.RED} ยังไม่มีฐานข้อมูล '{DB_PATH}/' — รัน python ingest.py ก่อนนะครับ{C.RESET}")
         sys.exit(1)
 
-    # ✅ แก้ไข: ใช้ model เดียวกับใน ingest.py
     embeddings = GoogleGenerativeAIEmbeddings(
         model="models/gemini-embedding-2",
         api_key=API_KEY,
     )
     
-    # ✅ แก้ไข: ปรับโมเดลเป็นเวอร์ชันที่มีความเสถียรใน API ปัจจุบัน (สามารถเปลี่ยนกลับได้หากใช้คีย์ที่รองรับ)
     llm = ChatGoogleGenerativeAI(
         model="models/gemini-2.0-flash", 
         temperature=0.3,
@@ -97,15 +95,12 @@ def build_chain():
     vector_db = Chroma(persist_directory=DB_PATH, embedding_function=embeddings)
 
     prompt = ChatPromptTemplate.from_template("""
-คุณเป็นผู้ช่วย AI ที่ตอบคำถามจากเอกสารของผู้ใช้เท่านั้น
-ตอบเป็นภาษาเดียวกับคำถาม กระชับและตรงประเด็น
-ถ้าข้อมูลใน Context ไม่เพียงพอ ให้บอกตรงๆ ว่าไม่มีข้อมูลนั้นในเอกสาร
+ตอบคำถามจาก Context เท่านั้น 
+เน้นความกระชับที่สุด (ไม่เกิน 2-3 ประโยค) 
+ถ้าไม่มีในเอกสารให้บอกว่า "ไม่พบข้อมูล"
 
-Context:
-{context}
-
+Context: {context}
 คำถาม: {input}
-
 คำตอบ:""")
 
     combine_chain   = create_stuff_documents_chain(llm, prompt)
