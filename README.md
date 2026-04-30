@@ -96,9 +96,26 @@ langchain-text-splitters==0.2.4
 chromadb==0.5.3
 pypdf==4.3.1
 python-dotenv==1.0.1
+pip install watchdog
 
 ```
+### `start.py`
 
+| ฟังก์ชัน | หน้าที่ |
+|---------|--------|
+| `IngestHandler` | เฝ้าดูโฟลเดอร์ `my_documents/` เมื่อมีไฟล์ `.pdf` หรือ `.txt` ถูกสร้างหรือแก้ไข จะสั่งรัน `ingest.py` อัตโนมัติ |
+| `run_ingest()` | เรียก `ingest.py` ผ่าน `subprocess` โดยใช้ interpreter เดียวกับที่รัน `start.py` |
+
+คำอธิบายสั้น ๆ: สคริปต์ `start.py` ใช้ `watchdog` เพื่อติดตามการเปลี่ยนแปลงไฟล์ในโฟลเดอร์ `my_documents/` และรันกระบวนการ ingest ให้อัตโนมัติ เหมาะสำหรับการใช้งานแบบ background watcher ขณะคุณเพิ่มหรือแก้ไขเอกสาร
+
+# รัน watcher (รันค้างไว้จนกว่าจะกด Ctrl+C)
+python start.py
+```
+
+ข้อควรระวัง:
+
+- `start.py` จะรัน `ingest.py` ทุกครั้งที่พบการสร้างหรือแก้ไขไฟล์ที่มีนามสกุล `.pdf` หรือ `.txt` — ตรวจสอบให้แน่ใจว่า `ingest.py` ถูกตั้งค่าให้ข้ามไฟล์ที่ไม่มีการเปลี่ยนแปลงแล้ว (manifest/hash) เพื่อหลีกเลี่ยงการรันซ้ำโดยไม่จำเป็น
+- หากต้องการเฝ้าแบบ recursive ให้แก้ `observer.schedule(event_handler, WATCH_PATH, recursive=False)` เป็น `recursive=True`
 
 > 💡 ถ้า pip รายงานปัญหา dependency conflict ให้ลอง `pip install -r requirements.txt --upgrade`
 
@@ -383,6 +400,7 @@ python ingest.py
 # ทั้ง ingest.py และ chat.py ต้องเป็นชื่อเดียวกัน
 model="models/gemini-embedding-2"
 ```
+
 
 ถ้าเคยรัน ingest ด้วย model อื่นมาก่อน ให้ลบ DB และ ingest ใหม่:
 

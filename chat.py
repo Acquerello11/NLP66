@@ -64,10 +64,10 @@ def print_sources(docs: list):
         src   = doc.metadata.get("source", "ไม่ทราบแหล่งที่มา")
         fname = Path(src).name
         page  = doc.metadata.get("page", "")
-            try:
-                page_str = f"  หน้า {int(page)+1}" if page != "" else ""
-            except (ValueError, TypeError):
-                page_str = ""
+        try:
+            page_str = f"  หน้า {int(page)+1}" if page != "" else ""
+        except (ValueError, TypeError):
+            page_str = ""
 
         if fname not in seen:
             seen.add(fname)
@@ -90,7 +90,7 @@ def build_chain():
     )
     
     llm = ChatGoogleGenerativeAI(
-        model="models/gemini-2.0-flash", 
+        model="models/gemini-2.5-flash", 
         temperature=0.3,
         api_key=API_KEY,
     )
