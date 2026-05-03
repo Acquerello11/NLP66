@@ -75,7 +75,7 @@ python -m venv venv
 source venv/bin/activate
 
 # เปิดใช้งาน — Windows
-venv\Scripts\activate
+.venv\Scripts\activate
 ```
 
 ### 3. ติดตั้ง Dependencies
@@ -96,7 +96,8 @@ langchain-text-splitters==0.2.4
 chromadb==0.5.3
 pypdf==4.3.1
 python-dotenv==1.0.1
-pip install watchdog
+watchdog
+streamlit
 
 ```
 ### `start.py`
