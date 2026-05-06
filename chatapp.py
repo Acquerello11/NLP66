@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from tkinter import filedialog
 from dotenv import load_dotenv
+import ingest
 
 from langchain_chroma import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
@@ -71,7 +72,15 @@ class AIBOApp(ctk.CTk):
 
         # ปุ่มตกลง
         self.submit_btn = ctk.CTkButton(container, text="ตรวจสอบและเข้าสู่ระบบ", height=40, font=("Prompt", 14), command=self.verify_and_save_key)
-        self.submit_btn.pack(pady=(10, 30))
+        self.submit_btn.pack(pady=(10, 10))
+
+        # ปุ่มยกเลิก (แสดงเฉพาะกรณีที่มีคีย์เดิมอยู่แล้ว และผู้ใช้กดเข้ามาแก้)
+        if self.api_key != "":
+            self.cancel_btn = ctk.CTkButton(container, text="ย้อนกลับ (ยกเลิก)", height=40, fg_color="#7f8c8d", hover_color="#95a5a6", font=("Prompt", 14), command=self.show_main_ui)
+            self.cancel_btn.pack(pady=(0, 30))
+        else:
+            # ถ้าไม่มีปุ่มยกเลิก ให้ปรับระยะห่างด้านล่างของปุ่มตกลงให้สวยงาม
+            self.submit_btn.pack_configure(pady=(10, 30))
 
     def paste_key(self):
         try:
@@ -90,6 +99,8 @@ class AIBOApp(ctk.CTk):
 
         self.setup_status.configure(text="⏳ กำลังตรวจสอบการเชื่อมต่อกับ Google...", text_color="#f1c40f")
         self.submit_btn.configure(state="disabled")
+        if hasattr(self, 'cancel_btn'):
+            self.cancel_btn.configure(state="disabled")
 
         # แยกการตรวจสอบไปรันอีก Thread เพื่อไม่ให้หน้าต่างค้าง
         threading.Thread(target=self._test_api_thread, args=(user_key,), daemon=True).start()
@@ -111,6 +122,8 @@ class AIBOApp(ctk.CTk):
         except Exception:
             self.after(0, lambda: self.setup_status.configure(text="❌ API Key ไม่ถูกต้อง หรือเชื่อมต่อไม่ได้", text_color="#e74c3c"))
             self.after(0, lambda: self.submit_btn.configure(state="normal"))
+            if hasattr(self, 'cancel_btn'):
+                self.after(0, lambda: self.cancel_btn.configure(state="normal"))
 
     # ================= 2. หน้าต่างแชทหลัก =================
     def show_main_ui(self):
@@ -160,9 +173,9 @@ class AIBOApp(ctk.CTk):
         self.clear_chat() # เคลียร์จอเพื่อต้อนรับ
         
         if self.chain is None:
-            self.append_chat("System", "⚠️ ยังไม่มีฐานข้อมูล กรุณากดปุ่ม '📂 เพิ่มไฟล์เอกสาร' ทางซ้ายมือ เพื่อให้ระบบเริ่มเรียนรู้ครับ")
+            self.append_chat("System", "⚠️ ยังไม่มีฐานข้อมูล กรุณากดปุ่ม '📂 เพิ่มไฟล์เอกสาร' ทางซ้ายมือ เพื่อให้คุณครูเริ่มอ่านเอกสารก่อนนะครับ")
         else:
-            self.append_chat("AIBO", "สวัสดีครับ! เชื่อมต่อ API สำเร็จและอ่านเอกสารเรียบร้อยแล้ว มีอะไรให้ผมช่วยไหมครับ?")
+            self.append_chat("คุณครู AIBO", "สวัสดีครับนักเรียน! ครูอ่านเอกสารเรียบร้อยแล้ว มีอะไรให้ครูช่วยอธิบายไหมครับ?")
 
     # ================= ฟังก์ชันโหลด Chain =================
     def get_safe_chain(self):
@@ -173,10 +186,12 @@ class AIBOApp(ctk.CTk):
             llm = ChatGoogleGenerativeAI(model="models/gemini-2.5-flash", temperature=0.3, api_key=self.api_key)
             vector_db = Chroma(persist_directory="vector_db", embedding_function=embeddings)
             
-            # System Prompt เริ่มต้น
+            # System Prompt สไตล์คุณครูใจดี
             prompt = ChatPromptTemplate.from_template("""
-            ตอบคำถามจาก Context เท่านั้น เน้นความกระชับ ถูกต้อง
-            ถ้าไม่มีในเอกสารให้บอกว่า "ไม่พบข้อมูลในเอกสารครับ"
+            คุณคือ 'คุณครู' ที่ใจดี เชี่ยวชาญ และอธิบายเก่ง
+            ตอบคำถามนักเรียนโดยอิงจาก Context ด้านล่างนี้เท่านั้น 
+            อธิบายให้เข้าใจง่าย เป็นลำดับขั้นตอน พร้อมยกตัวอย่างประกอบถ้าเป็นไปได้
+            ถ้าเนื้อหาใน Context ไม่มีคำตอบ ให้ตอบตามตรงว่า "ครูหาข้อมูลส่วนนี้ในเอกสารไม่พบครับ ลองตรวจสอบไฟล์ดูอีกครั้ง หรือลองถามเรื่องอื่นดูนะ"
             
             Context: {context}
             คำถาม: {input}
@@ -200,18 +215,21 @@ class AIBOApp(ctk.CTk):
         for path in file_paths:
             shutil.copy(path, self.docs_path)
 
-        self.status_label.configure(text="🧠 AI กำลังเรียนรู้...", text_color="#e67e22")
-        self.append_chat("System", f"กำลังนำเข้าเอกสาร {len(file_paths)} ไฟล์... โปรดรอสักครู่")
+        self.status_label.configure(text="🧠 คุณครูกำลังอ่าน...", text_color="#e67e22")
+        self.append_chat("System", f"กำลังให้คุณครูอ่านเอกสาร {len(file_paths)} ไฟล์... โปรดรอสักครู่")
         
         threading.Thread(target=self.run_ingestion, daemon=True).start()
 
     def run_ingestion(self):
+        
+        ingest.start_ingesting()
+        
         try:
             # รันสคริปต์ ingest.py ใน Background
             subprocess.run([sys.executable, "ingest.py"], check=True)
             self.chain = self.get_safe_chain()
             self.after(0, lambda: self.status_label.configure(text="🟢 พร้อมใช้งาน", text_color="#2ecc71"))
-            self.after(0, lambda: self.append_chat("System", "✅ นำเข้าข้อมูลและอัปเดตฐานความรู้เสร็จสิ้น! ลองถามคำถามได้เลยครับ"))
+            self.after(0, lambda: self.append_chat("System", "✅ คุณครูอ่านข้อมูลเสร็จสิ้น! ลองถามคำถามได้เลยครับ"))
         except Exception as e:
             self.after(0, lambda: self.status_label.configure(text="🔴 เกิดข้อผิดพลาด", text_color="#e74c3c"))
             self.after(0, lambda: self.append_chat("System", f"❌ Error: {str(e)}"))
@@ -220,11 +238,11 @@ class AIBOApp(ctk.CTk):
     def append_chat(self, role, message):
         self.chat_display.configure(state="normal")
         if role == "You":
-            self.chat_display.insert("end", f"🧑‍💻 คุณ:\n{message}\n\n")
+            self.chat_display.insert("end", f"🧑‍🎓 คุณ:\n{message}\n\n")
         elif role == "System":
             self.chat_display.insert("end", f"⚙️ {message}\n\n")
         else:
-            self.chat_display.insert("end", f"🤖 AIBO:\n{message}\n\n{'─'*40}\n\n")
+            self.chat_display.insert("end", f"👨‍🏫 {role}:\n{message}\n\n{'─'*40}\n\n")
         self.chat_display.configure(state="disabled")
         self.chat_display.see("end")
 
@@ -246,7 +264,7 @@ class AIBOApp(ctk.CTk):
         try:
             result = self.chain.invoke({"input": query})
             answer = result["answer"]
-            self.after(0, lambda: self.append_chat("AIBO", answer))
+            self.after(0, lambda: self.append_chat("คุณครู AIBO", answer))
             self.after(0, lambda: self.status_label.configure(text="🟢 พร้อมใช้งาน", text_color="#2ecc71"))
         except Exception as e:
             self.after(0, lambda: self.append_chat("System", f"Error: {str(e)}"))
